@@ -1,0 +1,35 @@
+{% load staticfiles %}
+<script src={% static "/js/jquery-1.12.4.min.js" %}></script>
+<a href="/goods/list/?type={{ type }}&&p=1&&sort={{ sort }}">首页</a>
+{% if type01.has_previous %}
+        <a href="/goods/list/?type={{ type }}&&p={{ type01.previous_page_number }}&&sort={{ sort }}">上一页</a>
+    {% endif %}
+
+{% for i in type01.paginator.pager_num_range %}
+    {% if  i == type01.number %}
+        <a style="background:cadetblue;color: white" href="/goods/list/?type={{ type }}&&p={{ i }}&&sort={{ sort }}">{{ i }}</a>
+    {% else %}
+        <a href="/goods/list/?type={{ type }}&&p={{ i }}&&sort={{ sort }}">{{ i }}</a>
+    {% endif %}
+{% endfor %}
+    
+{% if type01.has_next %}
+    <a href="/goods/list/?type={{ type }}&&p={{ type01.next_page_number }}&&sort={{ sort }}">下一页</a>
+{% endif %}
+<a href="/goods/list/?type={{ type }}&&p={{ type01.paginator.num_pages }}&&sort={{ sort }}">尾页</a>
+<a href="#">{{ type01.number }}/{{ type01.paginator.num_pages }}</a>
+{#<span style="color: red">#}
+{#    {{ type01.number }}/{{ type01.paginator.num_pages }}#}
+{#</span>#}
+
+<input type="text" id="text1" style="width: 28px;height: 28px">
+
+<input type="button" value="跳转" id="btn" style="width: 45px;height: 30px;margin-left: 5px">
+<script>
+    $(function(){
+        $("#btn").click(function(){
+            var text1 = document.getElementById("text1").value;
+            window.location.href = "/goods/list/?type={{ type }}&&sort={{ sort }}&&p="+text1;//此处拼接内容
+            });
+        });
+</script>

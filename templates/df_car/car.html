@@ -1,0 +1,215 @@
+{% extends "df_goods/base.html" %}
+{% block head %}
+    <script>
+        function total(){
+            $(".col07").each(function() {
+                //获得数量
+                var count = $(this).prev().find("input").val();
+                //获得数量
+                var price = $(this).prev().prev().prev().text();
+                //计算小计
+                total0 = parseFloat(count)*parseFloat(price);
+                $(this).text(total0.toFixed(2));
+
+            });
+        }
+        //删除
+        function car_del(car_id) {
+            del = confirm("确定要删除吗？");
+            if(del){
+                $.get('/cars/car_del/'+car_id+'/',function (data) {
+                    if(data.ok = 1){
+                        $("ul").remove("#" + car_id);
+                        total();
+                        car_num();
+                    }
+                });
+            }
+        }
+        //购物车数量刷新
+        function car_num(){
+            var count = 0;
+            $(".num_show").each(function() {
+                  count+=parseInt($(this).val());
+            });
+            $("#total_count").text(count);
+        }
+
+        $(function () {
+            car_num();
+            total();
+            //全选，全消
+            $("#check_all").click(function () {
+                state = $(this).prop("checked");
+                $(":checkbox:not(#check_all)").prop("checked",state);
+                car_num();
+                total_num();
+                total_price();
+            });
+
+            //选择
+            $(":checkbox:not(#check_all)").click(function(){
+                if ($(this).prop("checked")){
+                    if ($(":checked").length + 3 == $(":checkbox").length){
+                        $("#check_all").prop("checked",true);
+                    }
+                }else{
+                    $("#check_all").prop("checked",false);
+                }
+            });
+
+            //修改函数
+            function xiugai(){
+                $.get('/cars/edit/' + car_id + '/' + count + '/', function (data) {
+                    if (data.ok == 1){//修改成功
+                        total();
+                    }else{//修改失败，显示原来数据
+                        $(shis).val(data.ok);
+                    }
+                });
+            }
+
+            //加
+            $(".add").click(function(){
+                txt = $(this).next();
+                txt.val(parseFloat(txt.val()) + 1).blur();
+                //修改的购物车id
+                car_id = $(this).parents('.cart_list_td').attr('id');
+                count = $(this).next().val();//修改后数量
+                $(this).parents(".cart_list_td").children().children().next().val(count);
+                xiugai();
+                car_num();
+                total_num();
+                total_price();
+            });
+
+             //减
+            $(".minus").click(function () {
+                var txt = $(this).prev();
+                if(parseFloat(txt.val())<=1){
+                    txt.val(2);
+                }
+                txt.val(parseFloat(txt.val())-1).blur();
+                //修改的购物车id
+                var car_id = $(this).parents('.cart_list_td').attr('id');
+                var count = $(this).prev().val();//修改后数量
+                $(this).parents(".cart_list_td").children().children().next().val(count);
+                xiugai();
+                car_num();
+                total_num();
+                total_price();
+            });
+            //手动输入
+            $(".num_show").blur(function() {
+                count = $(this).val();
+                if (count < 1) {
+                    $(this).focus();
+                    $(this).val(1);
+                    alert("请输入正确的数量！");
+                } else if (count >= 100) {
+                    $(this).val(100);
+                    $(this).focus();
+                    alert("数量不能超过100！");
+                }
+
+                //修改的购物车id
+                car_id = $(this).parents('.cart_list_td').attr('id');
+                count = $(this).val();//修改后数量
+                xiugai();
+                car_num();
+                total_num();
+                total_price();
+            });
+
+            //选择时把数量和价格传过去 并把选择的数量和总价钱计算出来
+            function total_num(){
+                var total_count = 0;//选择物品的数量
+                $(".good_id").each(function(){
+                    if($(this).prop("checked")){
+                        total_count+=parseInt($(this).parents(".cart_list_td").children(".col06").children().children(".num_show").val());
+                    }
+                });
+                $(".total_count1").text(total_count);
+            }
+
+             function total_price(){
+                  var total_price1 = 0;//选择物品的总价
+                  total();
+                 $(".good_id").each(function(){
+                    if($(this).prop("checked")){
+                        total_price1+=parseFloat($(this).parents(".cart_list_td").children(".col07").text());
+                    }
+                 });
+                 $(".total_price").text(total_price1);
+            }
+
+            $(".good_id").click(function () {
+                state = $(this).prop("checked");
+                $(this).prev().prop("checked",state);
+                $(this).prev().prev().prop("checked",state);
+                total_num();
+                total_price();
+            });
+
+            $('#pay_form').submit(function(){
+                if($(".total_count1").text()<1){
+                    alert("请选择要购买的商品");
+                    return false;
+                }
+            });
+        });
+    </script>
+{% endblock %}
+{% block content %}
+	<div class="search_bar clearfix">
+		<a href="/goods/index/" class="logo fl"><img src="/static/images/logo.png"></a>
+		<div class="sub_page_name fl">|&nbsp;&nbsp;&nbsp;&nbsp;购物车</div>
+		<div class="search_con fr">
+			<input type="text" class="input_text fl" name="" placeholder="搜索商品">
+			<input type="button" class="input_btn fr" name="" value="搜索">
+		</div>		
+	</div>
+
+	<div class="total_count">全部商品<em id="total_count"></em>件</div>
+	<ul class="cart_list_th clearfix">
+		<li class="col01">商品名称</li>
+		<li class="col02">商品价格</li>
+		<li class="col03">商品单位</li>
+		<li class="col04">数量</li>
+		<li class="col05">小计</li>
+		<li class="col06">操作</li>
+	</ul>
+
+    <form method="post" action="/orders/pay/" id="pay_form">
+        {% csrf_token %}
+        {% for car in cars %}
+            <ul class="cart_list_td clearfix" id={{ car.id }}>
+            <li class="col01">
+                <input type="checkbox" style="visibility: hidden" class="info"  value="{{ car.goods.gprice }}" name="sku_price">
+                <input type="checkbox" style="visibility: hidden"  class="info"  value="{{ car.count }}" name="sku_counts">
+                <input type="checkbox" class="good_id" value="{{ car.goods.id }}" name="sku_ids">
+            </li>
+            <li class="col02"><a href="/goods/detail/?id={{ car.goods.id }}"><img src="/static/{{ car.goods.gpic }}"></a></li>
+            <li class="col03"><a href="/goods/detail/?id={{ car.goods.id }}">{{ car.goods.gtitle }}</a><br><em>{{ car.goods.gprice }}元/{{ car.goods.gunit }}</em></li>
+            <li class="col04">{{ car.goods.gprice }}元</li>
+            <li class="col05">{{ car.goods.gunit }}</li>
+            <li class="col06">
+                <div class="num_add">
+                    <a href="javascript:;" class="add fl">+</a>
+                    <input type="text" class="num_show fl" value="{{ car.count }}" name="num_show">
+                    <a href="javascript:;" class="minus fl">-</a>
+                </div>
+            </li>
+            <li class="col07"></li>
+            <li class="col08"><a href="javascript:car_del({{ car.id }});">删除</a></li>
+        </ul>
+        {% endfor %}
+
+        <ul class="settlements">
+            <li class="col01"><input type="checkbox" id="check_all" name="" style="margin-left:30px"></li>
+            <li class="col02">全选</li>
+            <li class="col03">合计(不含运费)：¥<b class="total_price">0</b>元<br>共计<b class="total_count1">0</b>件商品</li>
+            <li class="col04"><a><input type="submit" style="background-color:red;width:170px;height:80px;font-size: 30px;color:white" value="去结算" /></a></li>
+        </ul>
+    </form>
+{% endblock content %}
